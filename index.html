@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Fluid Paint</title>
+
+        <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700,800' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="paint.css">
+    </head>
+
+    <body>
+        <script type="text/template" id="main">
+            <div id="ui">
+                <div id="clear-button" class="button">Clear</div><div id="save-button" class="button">Save</div>
+
+                <div class="control-label">Quality</div>
+                <div id="qualities"></div>
+                <div style="clear:both"></div>
+
+                <div class="control-label">Paint Fluidity</div>
+                <div id="fluidity-slider" class="slider"></div>
+
+                <div class="control-label">Bristle Count</div>
+                <div id="bristles-slider" class="slider"></div>
+
+                <div class="control-label">Brush Size</div>
+                <div id="size-slider" class="slider"></div>
+
+                <div class="control-label">Paint Color</div>
+            </div>
+
+
+            <div id="instructions">
+                <span>Click and hold</span> to paint <br/>
+                <span>Scroll</span> to change brush size<br/>
+                <span>Space + drag</span> to pan<br/>
+                <span>Drag edges</span> to resize canvas
+            </div>
+
+            <div id="footer">
+                <a href="http://david.li">david.li</a> | <a href="http://github.com/dli/paint">Source code</a>
+            </div>
+        </script>
+
+        <script type="text/template" id="no-support">
+            <div id="no-support-container">
+                <div id="error"></div>
+                <div id="backlink"><a href="http://david.li">Back to david.li</a></div>
+            </div>
+        </script>
+
+        <div id="placeholder"></div>
+
+
+        <script src="wrappedgl.js"></script>
+        <script src="utilities.js"></script>
+        <script src="rectangle.js"></script>
+        <script src="brush.js"></script>
+        <script src="simulator.js"></script>
+        <script src="colorpicker.js"></script>
+        <script src="slider.js"></script>
+        <script src="buttons.js"></script>
+        <!--<script src="brushviewer.js"></script>-->
+        <script src="paint.js"></script>
+
+        <script>
+            'use strict';
+
+            var canvas = document.createElement('canvas');
+            var wgl = WrappedGL.create(canvas);
+
+            function hasSupport (wgl) {
+                if (wgl === null) return false;
+
+                if (!wgl.hasHalfFloatTextureSupport() && !wgl.hasFloatTextureSupport) {
+                    return false;
+                }
+
+                return true;
+            }
+
+
+            if (wgl !== null && (wgl.hasHalfFloatTextureSupport() || wgl.hasFloatTextureSupport())) { //required features are supported
+                document.body.appendChild(canvas);
+                document.getElementById('placeholder').outerHTML = document.getElementById('main').innerHTML;
+                var painter = new Paint(canvas, wgl);
+            } else { //required features unsupported
+                document.getElementById('placeholder').outerHTML = document.getElementById('no-support').innerHTML;
+
+                if (wgl === null) {
+                    document.getElementById('error').innerHTML = 'Unfortunately, your browser does not support WebGL.';
+                } else {
+                    document.getElementById('error').innerHTML = 'Unfortunately, your browser does not support WebGL floating point textures.';
+                }
+            }
+        </script>
+
+    </body>
+</html>
