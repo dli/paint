@@ -343,6 +343,9 @@ var Simulator = (function () {
             var advectDrawState = wgl.createDrawState()
                 .bindFramebuffer(this.simulationFramebuffer)
                 .viewport(simulationArea.left, simulationArea.bottom, simulationArea.width, simulationArea.height)
+
+                .enable(wgl.SCISSOR_TEST)
+                .scissor(simulationArea.left, simulationArea.bottom, simulationArea.width, simulationArea.height)
                 
                 .useProgram(this.advectProgram)
                 .uniform1f('u_dissipation', dissipation)
@@ -379,6 +382,9 @@ var Simulator = (function () {
             .bindFramebuffer(this.simulationFramebuffer)
             .viewport(simulationArea.left, simulationArea.bottom, simulationArea.width, simulationArea.height)
 
+            .enable(wgl.SCISSOR_TEST)
+            .scissor(simulationArea.left, simulationArea.bottom, simulationArea.width, simulationArea.height)
+
             .useProgram(this.divergenceProgram)
             .uniform2f('u_resolution', this.resolutionWidth, this.resolutionHeight)
             .uniformTexture('u_velocityTexture', 0, wgl.TEXTURE_2D, this.velocityTexture)
@@ -396,6 +402,9 @@ var Simulator = (function () {
         var jacobiDrawState = wgl.createDrawState()
             .bindFramebuffer(this.simulationFramebuffer)
             .viewport(simulationArea.left, simulationArea.bottom, simulationArea.width, simulationArea.height)
+
+            .enable(wgl.SCISSOR_TEST)
+            .scissor(simulationArea.left, simulationArea.bottom, simulationArea.width, simulationArea.height)
 
             .useProgram(this.jacobiProgram)
             .uniform2f('u_resolution', this.resolutionWidth, this.resolutionHeight)
@@ -424,6 +433,9 @@ var Simulator = (function () {
         var subtractDrawState = wgl.createDrawState()
             .bindFramebuffer(this.simulationFramebuffer)
             .viewport(simulationArea.left, simulationArea.bottom, simulationArea.width, simulationArea.height)
+
+            .enable(wgl.SCISSOR_TEST)
+            .scissor(simulationArea.left, simulationArea.bottom, simulationArea.width, simulationArea.height)
 
             .useProgram(this.subtractProgram)
             .uniform2f('u_resolution', this.resolutionWidth, this.resolutionHeight)
