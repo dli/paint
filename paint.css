@@ -199,3 +199,13 @@ body {
 #backlink {
     margin-top: 20px;
 }
+.canvasLockContainer{
+  display: inline-block;width: 13px;
+}
+#canvasLockImage{
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+  width: 13px;
+}
