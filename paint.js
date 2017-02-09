@@ -93,7 +93,7 @@ var Paint = (function () {
     var LIGHT_DIRECTION = [0, 1, 1];
 
     //canvas resizing
-    var CANVAS_RESIZE = false;;
+    var CANVAS_RESIZE = false;
 
 
     function pascalRow (n) {
