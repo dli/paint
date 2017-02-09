@@ -12,7 +12,6 @@
         <script type="text/template" id="main">
             <div id="ui">
                 <div id="clear-button" class="button">Clear</div><div id="save-button" class="button">Save</div>
-
                 <div class="control-label">Quality</div>
                 <div id="qualities"></div>
                 <div style="clear:both"></div>
@@ -38,7 +37,10 @@
             </div>
 
             <div id="footer">
-                <a href="http://david.li">david.li</a> | <a href="http://github.com/dli/paint">Source code</a>
+              <div class="canvasLockContainer">
+                <img id="canvasLockImage" src="images/unlock.png">
+              </div>
+              </span> | <a href="http://david.li">david.li</a> | <a href="http://github.com/dli/paint">Source code</a>
             </div>
         </script>
 
@@ -50,8 +52,6 @@
         </script>
 
         <div id="placeholder"></div>
-
-
         <script src="wrappedgl.js"></script>
         <script src="utilities.js"></script>
         <script src="rectangle.js"></script>
@@ -93,6 +93,14 @@
                     document.getElementById('error').innerHTML = 'Unfortunately, your browser does not support WebGL floating point textures.';
                 }
             }
+
+            // Event listener for the drag to resize canvas button
+            document.addEventListener("DOMContentLoaded", function() {
+              document.getElementById('canvasLockImage').addEventListener('click', function(){
+                painter.topggleCanvasResizeLock();
+              });
+            });
+
         </script>
 
     </body>

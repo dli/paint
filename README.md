@@ -2,4 +2,4 @@
 
 ![](http://david.li/images/paintgithub.png)
 
-Web GL Painting
+[http://david.li/paint](http://david.li/paint)
