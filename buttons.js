@@ -27,7 +27,10 @@ var Buttons = (function () {
             (function () { //create closure to store index
                 var index = i;
                 var clickedElement = elements[i];
-                elements[i].addEventListener('click', function () {
+
+                var onSelect = function (event) {
+                    event.preventDefault();
+
                     if (activeElement !== clickedElement) {
                         activeElement = clickedElement;
 
@@ -36,7 +39,10 @@ var Buttons = (function () {
                         refresh();
                     }
 
-                });
+                };
+
+                elements[i].addEventListener('click', onSelect);
+                elements[i].addEventListener('touchstart', onSelect);
             }());
         }
 

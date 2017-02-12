@@ -47,11 +47,11 @@ void main () {
         float stiffness = random * u_stiffnessVariation;
 
         if (constraint > -1.0) {
-            vec3 gradA = (dot(r1, r2) * r1 - r2) / distance(aPos, bPos);
-            vec3 gradC = (-dot(r1, r2) * r2 + r1) / distance(bPos, cPos);
+            vec3 gradA = (dot(r1, r2) * r1 - r2) / max(distance(aPos, bPos), 0.0001);
+            vec3 gradC = (-dot(r1, r2) * r2 + r1) / max(distance(bPos, cPos), 0.0001);
             vec3 gradB = -gradA - gradC;
 
-            float s = stiffness * constraint / (aW * length2(gradA) + bW * length2(gradB) + cW * length2(gradC));
+            float s = stiffness * constraint / max(aW * length2(gradA) + bW * length2(gradB) + cW * length2(gradC), 0.0001);
             vec3 newPosition;
             if (index == aIndex) {
                 vec3 currentPosition = aPos;

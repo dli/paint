@@ -29,7 +29,7 @@ void main () {
     float r = sqrt(bristleIndex + (randoms.w - 0.5) * u_jitter) / sqrt(u_bristleCount);
 
     float spacing = u_bristleLength / (u_verticesPerBristle - 1.0);
-    vec3 brushSpaceBristlePosition = vec3(r * cos(theta), r * sin(theta), -vertexIndex * 38.0) + vec3(vertexIndex * spacing, 0.0, -vertexIndex * spacing);
+    vec3 brushSpaceBristlePosition = vec3(r * cos(theta), r * sin(theta), -vertexIndex * spacing);
 
     vec3 bristlePosition = u_brushPosition + brushSpaceBristlePosition * u_brushScale;
 

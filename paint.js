@@ -366,6 +366,10 @@ var Paint = (function () {
 
             this.saveButton = document.getElementById('save-button');
             this.saveButton.addEventListener('click', this.save.bind(this));
+            this.saveButton.addEventListener('touchstart', (function (event) {
+                event.preventDefault();
+                this.save();
+            }).bind(this));
 
 
             this.clearButton = document.getElementById('clear-button');  
@@ -373,15 +377,25 @@ var Paint = (function () {
                 this.saveSnapshot();
                 this.simulator.clear();
             }).bind(this));
+            this.clearButton.addEventListener('touchstart', (function (event) {
+                event.preventDefault();
+
+                this.saveSnapshot();
+                this.simulator.clear();
+            }).bind(this));
 
 
             this.undoButton = document.getElementById('undo-button');
-            this.undoButton.addEventListener('click', (function () {
+            this.undoButton.addEventListener('click', this.undo.bind(this));
+            this.undoButton.addEventListener('touchstart', (function (event) {
+                event.preventDefault();
                 this.undo();
             }).bind(this));
 
             this.redoButton = document.getElementById('redo-button');
-            this.redoButton.addEventListener('click', (function () {
+            this.redoButton.addEventListener('click', this.redo.bind(this));
+            this.redoButton.addEventListener('touchstart', (function (event) {
+                event.preventDefault();
                 this.redo();
             }).bind(this));
 
@@ -448,6 +462,10 @@ var Paint = (function () {
             }).bind(this));
 
 
+            canvas.addEventListener('touchstart', this.onTouchStart.bind(this));
+            canvas.addEventListener('touchmove', this.onTouchMove.bind(this));
+            canvas.addEventListener('touchend', this.onTouchEnd.bind(this));
+            canvas.addEventListener('touchcancel', this.onTouchCancel.bind(this));
 
 
             //these are used while we're resizing
@@ -910,7 +928,7 @@ var Paint = (function () {
     };
 
     Paint.prototype.onMouseMove = function (event) {
-        event.preventDefault();
+        if (event.preventDefault) event.preventDefault();
 
         var position = Utilities.getMousePosition(event, this.canvas);
 
@@ -1025,7 +1043,7 @@ var Paint = (function () {
     };
 
     Paint.prototype.onMouseDown = function (event) {
-        event.preventDefault();
+        if (event.preventDefault) event.preventDefault();
 
         var position = Utilities.getMousePosition(event, this.canvas);
 
@@ -1034,6 +1052,9 @@ var Paint = (function () {
 
         this.mouseX = mouseX;
         this.mouseY = mouseY;
+
+        this.brushX = mouseX;
+        this.brushY = mouseY;
 
         this.colorPicker.onMouseDown(mouseX, mouseY);
 
@@ -1061,7 +1082,7 @@ var Paint = (function () {
     };
 
     Paint.prototype.onMouseUp = function (event) {
-        event.preventDefault();
+        if (event.preventDefault) event.preventDefault();
 
         var position = Utilities.getMousePosition(event, this.canvas);
 
@@ -1112,6 +1133,48 @@ var Paint = (function () {
         this.brushScale = Utilities.clamp(this.brushScale + scrollDelta * -5.0, MIN_BRUSH_SCALE, MAX_BRUSH_SCALE);
 
         this.brushSizeSlider.setValue(this.brushScale);
+    };
+
+
+    Paint.prototype.onTouchStart = function (event) {
+        event.preventDefault();
+
+        if (event.touches.length === 1) { //if this is the first touch
+
+            this.onMouseDown(event.targetTouches[0]);
+
+            //if we've just started painting then we need to initialize the brush at the touch location
+            if (this.interactionState === InteractionMode.PAINTING) {
+                this.brush.initialize(this.brushX, this.brushY, BRUSH_HEIGHT * this.brushScale, this.brushScale);
+                this.brushInitialized = true;
+            }
+        } else if (event.touches.length === 2) { //if this is the second touch
+            if (this.interactionState === InteractionMode.PAINTING) {
+                this.interactionState = InteractionMode.PANNING; //switch to panning if we were already painting
+            }
+        }
+    };
+
+    Paint.prototype.onTouchMove = function (event) {
+        event.preventDefault();
+
+        this.onMouseMove(event.targetTouches[0]);
+    };
+
+    Paint.prototype.onTouchEnd = function (event) {
+        event.preventDefault();
+
+        if (event.touches.length > 0) return; //don't fire if there are still touches remaining
+
+        this.onMouseUp({});
+    };
+
+    Paint.prototype.onTouchCancel = function (event) {
+        event.preventDefault();
+
+        if (event.touches.length > 0) return; //don't fire if there are still touches remaining
+
+        this.onMouseUp({});
     };
 
     return Paint;

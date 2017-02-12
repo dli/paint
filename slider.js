@@ -78,6 +78,20 @@ var Slider = (function () {
             }
         });
 
+        div.addEventListener('touchstart', function (event) {
+            event.preventDefault();
+
+            var firstTouch = event.targetTouches[0];
+            onChange(firstTouch);
+        });
+
+        div.addEventListener('touchmove', function (event) {
+            event.preventDefault();
+
+            var firstTouch = event.targetTouches[0];
+            onChange(firstTouch);
+        });
+
         this.setValue = function (newValue) {
             value = newValue;
 
