@@ -73,17 +73,6 @@
             var canvas = document.createElement('canvas');
             var wgl = WrappedGL.create(canvas);
 
-            function hasSupport (wgl) {
-                if (wgl === null) return false;
-
-                if (!wgl.hasHalfFloatTextureSupport() && !wgl.hasFloatTextureSupport) {
-                    return false;
-                }
-
-                return true;
-            }
-
-
             if (wgl !== null && (wgl.hasHalfFloatTextureSupport() || wgl.hasFloatTextureSupport())) { //required features are supported
                 document.body.appendChild(canvas);
                 document.getElementById('placeholder').outerHTML = document.getElementById('main').innerHTML;
