@@ -1044,6 +1044,7 @@ var Paint = (function () {
 
     Paint.prototype.onMouseDown = function (event) {
         if (event.preventDefault) event.preventDefault();
+        if ('button' in event && event.button !== 0) return; //only handle left clicks
 
         var position = Utilities.getMousePosition(event, this.canvas);
 
