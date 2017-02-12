@@ -20,27 +20,45 @@ uniform float u_specularScale;
 uniform float u_featherSize;
 #endif
 
-vec3 trilinearInterpolate(vec3 p, vec3 v000, vec3 v100, vec3 v010, vec3 v001, vec3 v101, vec3 v011, vec3 v110, vec3 v111) {
-    return v000 * (1.0 - p.x) * (1.0 - p.y) * (1.0 - p.z) +
-           v100 * p.x * (1.0 - p.y) * (1.0 - p.z) +
-           v010 * (1.0 - p.x) * p.y * (1.0 - p.z) +
-           v001 * (1.0 - p.x) * (1.0 - p.y) * p.z +
-           v101 * p.x * (1.0 - p.y) * p.z +
-           v011 * (1.0 - p.x) * p.y * p.z +
-           v110 * p.x * p.y * (1.0 - p.z) +
-           v111 * p.x * p.y * p.z;
-}
-
 vec3 rybToRgb(vec3 ryb) {
-    return trilinearInterpolate(ryb, 
-        vec3(1.0, 1.0, 1.0), 
-        vec3(1.0, 0.0, 0.0), 
-        vec3(0.163, 0.373, 0.6), 
-        vec3(1.0, 1.0, 0.0), 
-        vec3(1.0, 0.5, 0.0), 
-        vec3(0.0, 0.66, 0.2),
-        vec3(0.5, 0.0, 0.5),
-        vec3(0.2, 0.094, 0.0));
+    float r = ryb.x;
+    float y = ryb.y;
+    float b = ryb.z;
+
+    // remove brightness/whiteness
+    float w = min(min(r, y), b);
+    r -= w;
+    y -= w;
+    b -= w;
+
+    float my = max(max(r, y), b);
+
+    // get the green out of the yellow and blue
+    float g = min(y, b);
+    y -= g;
+    b -= g;
+
+    if (b != 0.0 && g != 0.0) {
+        b *= 2.0;
+        g *= 2.0;
+    }
+
+    // redistribute the remaining yellow
+    r += y;
+    g += y;
+
+    // Create the final vector
+    vec3 rgb = vec3(r, g, b);
+
+    // normalize to values
+    float mg = max(max(r, g), b);
+    if(mg != 0.0) {
+        float n = my / mg;
+        rgb *= n;
+    }
+    rgb += w;
+
+    return 1.0 - rgb;
 }
 
 //samples with feathering at the edges
@@ -75,7 +93,7 @@ vec2 computeGradient(vec2 coordinates) { //sobel operator
     float bottomLeft = getHeight(coordinates + vec2(-delta.x, -delta.y));
     float bottom = getHeight(coordinates + vec2(0.0, -delta.y));
     float bottomRight = getHeight(coordinates + vec2(delta.x, -delta.y));
-    
+
     return vec2(
          1.0 * topLeft - 1.0 * topRight + 2.0 * left - 2.0 * right + 1.0 * bottomLeft - 1.0 * bottomRight,
         -1.0 * topLeft + 1.0 * bottomLeft - 2.0 * top + 2.0 * bottom - 1.0 * topRight + 1.0 * bottomRight);
@@ -156,6 +174,6 @@ void main () {
     vec3 color = rybToRgb(value.rgb);
 
     vec3 surfaceColor = color * diffuse + specular * u_specularScale;
-    
+
     gl_FragColor = vec4(surfaceColor, 1.0);
 }
