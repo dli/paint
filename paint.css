@@ -199,3 +199,33 @@ body {
 #backlink {
     margin-top: 20px;
 }
+
+#undo-button {
+    margin-left: 30px;
+}
+
+#redo-button {
+    margin-left: 10px;
+}
+
+.do-button-active {
+    margin-top: 205px;
+
+    background: rgb(30, 100, 130);
+}
+
+.do-button-active:hover {
+    background: rgb(20, 90, 120);
+}
+
+.do-button-active:active {
+    background: rgb(10, 80, 110);
+}
+
+.do-button-inactive {
+    margin-top: 205px;
+
+    cursor: default;
+
+    background: #666666;
+}

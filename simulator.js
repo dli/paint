@@ -210,6 +210,18 @@ var Simulator = (function () {
     };
 
 
+    //assumes destination texture has dimensions resolutionWidth x resolutionHeight
+    Simulator.prototype.copyPaintTexture = function (destinationTexture) {
+        this.copyTexture(this.resolutionWidth, this.resolutionHeight, this.paintTexture, destinationTexture);
+    };
+
+    Simulator.prototype.applyPaintTexture = function (texture) {
+        this.copyTexture(this.resolutionWidth, this.resolutionHeight, texture, this.paintTexture);
+        this.copyTexture(this.resolutionWidth, this.resolutionHeight, texture, this.paintTextureTemp);
+
+        this.clearTextures([this.velocityTexture, this.velocityTextureTemp]);
+    };
+
     //returns the area we're currently simulating
     Simulator.prototype.getSimulationArea = function () {
         var simulationBorder = 0;

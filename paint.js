@@ -67,7 +67,7 @@ var Paint = (function () {
 
     //panel is aligned with the top left
     var PANEL_WIDTH = 300;
-    var PANEL_HEIGHT = 475;
+    var PANEL_HEIGHT = 530;
     var PANEL_BLUR_SAMPLES = 13;
     var PANEL_BLUR_STRIDE = 8;
 
@@ -91,6 +91,9 @@ var Paint = (function () {
     var SPECULAR_SCALE = 0.5;
     var DIFFUSE_SCALE = 0.15;
     var LIGHT_DIRECTION = [0, 1, 1];
+
+
+    var HISTORY_SIZE = 4; //number of snapshots we store - this should be number of reversible actions + 1
 
 
     function pascalRow (n) {
@@ -191,6 +194,22 @@ var Paint = (function () {
         return (1.0 - t) * a + t * b;
     }
 
+    //the texture is always updated to be (paintingWidth x paintingHeight) x resolutionScale
+    function Snapshot (texture, paintingWidth, paintingHeight, resolutionScale) {
+        this.texture = texture;
+        this.paintingWidth = paintingWidth;
+        this.paintingHeight = paintingHeight;
+        this.resolutionScale = resolutionScale;
+    }
+
+    Snapshot.prototype.getTextureWidth = function () {
+        return Math.ceil(this.paintingWidth * this.resolutionScale);
+    };
+
+    Snapshot.prototype.getTextureHeight = function () {
+        return Math.ceil(this.paintingHeight * this.resolutionScale);
+    };
+
 
     function Paint (canvas, wgl) {
         this.canvas = canvas;
@@ -278,6 +297,24 @@ var Paint = (function () {
             this.simulator = new Simulator(wgl, shaderSources, this.getPaintingResolutionWidth(), this.getPaintingResolutionHeight());
 
 
+            this.snapshots = [];
+            for (var i = 0; i < HISTORY_SIZE; ++i) { //we always keep around HISTORY_SIZE snapshots to avoid reallocating textures
+                var texture = wgl.buildTexture(wgl.RGBA, wgl.FLOAT, this.getPaintingResolutionWidth(), this.getPaintingResolutionHeight(), null, wgl.CLAMP_TO_EDGE, wgl.CLAMP_TO_EDGE, wgl.LINEAR, wgl.LINEAR);
+
+                wgl.framebufferTexture2D(this.framebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, texture, 0);
+                wgl.clear(wgl.createClearState().bindFramebuffer(this.framebuffer), wgl.COLOR_BUFFER_BIT);
+
+                this.snapshots.push(new Snapshot(texture, this.paintingRectangle.width, this.paintingRectangle.height, this.resolutionScale));
+            }
+
+
+            this.snapshotIndex = 0; //while not undoing, the next snapshot index we'd save into; when undoing, our current position in the snapshots - undo to snapshotIndex - 1, redo to snapshotIndex + 1
+
+            this.undoing = false;
+            this.maxRedoIndex = 0; //while undoing, the maximum snapshot index that can be applied
+
+
+
             this.brushInitialized = false; //whether the user has moved their mouse at least once and we thus have a valid brush position
 
             this.brushX = 0;
@@ -312,6 +349,8 @@ var Paint = (function () {
             this.qualityButtons = new Buttons(document.getElementById('qualities'),
                 QUALITIES.map(function (q) { return q.name })
             , INITIAL_QUALITY, (function (index) {
+                this.saveSnapshot();
+
                 this.resolutionScale = QUALITIES[index].resolutionScale;
                 this.simulator.changeResolution(this.getPaintingResolutionWidth(), this.getPaintingResolutionHeight());
             }).bind(this)); 
@@ -328,8 +367,22 @@ var Paint = (function () {
 
             this.clearButton = document.getElementById('clear-button');  
             this.clearButton.addEventListener('click', (function () {
+                this.saveSnapshot();
                 this.simulator.clear();
             }).bind(this));
+
+
+            this.undoButton = document.getElementById('undo-button');
+            this.undoButton.addEventListener('click', (function () {
+                this.undo();
+            }).bind(this));
+
+            this.redoButton = document.getElementById('redo-button');
+            this.redoButton.addEventListener('click', (function () {
+                this.redo();
+            }).bind(this));
+
+            this.refreshDoButtons();
 
 
 
@@ -378,6 +431,10 @@ var Paint = (function () {
             document.addEventListener('keydown', (function (event) {
                 if (event.keyCode === 32) { //space
                     this.spaceDown = true;
+                } else if (event.keyCode === 90) { //z
+                    this.undo();
+                } else if (event.keyCode === 82) { //r
+                    this.redo();
                 }
             }).bind(this));
 
@@ -685,6 +742,110 @@ var Paint = (function () {
         //this.brushViewer.draw(this.brushX, this.brushY, this.brush);
     };
 
+
+    Paint.prototype.saveSnapshot = function () {
+        if (this.snapshotIndex === HISTORY_SIZE) { //no more room in the snapshots
+            //the last shall be first and the first shall be last...
+            var front = this.snapshots.shift();
+            this.snapshots.push(front);
+
+            this.snapshotIndex -= 1;
+        }
+
+        this.undoing = false;
+
+        var snapshot = this.snapshots[this.snapshotIndex]; //the snapshot to save into
+
+        if (snapshot.getTextureWidth() !== this.simulator.resolutionWidth || snapshot.getTextureHeight() !== this.simulator.resolutionHeight) { //if we need to resize the snapshot's texture
+            wgl.rebuildTexture(snapshot.texture, wgl.RGBA, wgl.FLOAT, this.simulator.resolutionWidth, this.simulator.resolutionHeight, null, wgl.CLAMP_TO_EDGE, wgl.CLAMP_TO_EDGE, wgl.LINEAR, wgl.LINEAR);
+        }
+
+        this.simulator.copyPaintTexture(snapshot.texture);
+
+        snapshot.paintingWidth = this.paintingRectangle.width;
+        snapshot.paintingHeight = this.paintingRectangle.height;
+        snapshot.resolutionScale = this.resolutionScale;
+
+        this.snapshotIndex += 1;
+
+
+        this.refreshDoButtons();
+    };
+
+    Paint.prototype.applySnapshot = function (snapshot) {
+        this.paintingRectangle.width = snapshot.paintingWidth;
+        this.paintingRectangle.height = snapshot.paintingHeight;
+
+        if (this.resolutionScale !== snapshot.resolutionScale) {
+            for (var i = 0; i < QUALITIES.length; ++i) {
+                if (QUALITIES[i].resolutionScale === snapshot.resolutionScale) {
+                    this.qualityButtons.setIndex(i);
+                }
+            }
+
+            this.resolutionScale = snapshot.resolutionScale;
+        }
+
+        if (this.simulator.width !== this.getPaintingResolutionWidth() || this.simulator.height !== this.getPaintingResolutionHeight()) {
+            this.simulator.changeResolution(this.getPaintingResolutionWidth(), this.getPaintingResolutionHeight());
+        }
+
+        this.simulator.applyPaintTexture(snapshot.texture);
+    };
+
+    Paint.prototype.canUndo = function () {
+        return this.snapshotIndex >= 1;
+    };
+
+    Paint.prototype.canRedo = function () {
+        return this.undoing && this.snapshotIndex <= this.maxRedoIndex - 1;
+    };
+
+    Paint.prototype.undo = function () {
+        if (!this.undoing) {
+            this.saveSnapshot();
+
+            this.undoing = true;
+
+            this.snapshotIndex -= 1;
+
+            this.maxRedoIndex = this.snapshotIndex;
+        }
+
+        if (this.canUndo()) {
+            this.applySnapshot(this.snapshots[this.snapshotIndex - 1]);
+
+            this.snapshotIndex -= 1;
+        }
+
+        this.refreshDoButtons();
+    };
+
+    Paint.prototype.redo = function () {
+        if (this.canRedo()) {
+            this.applySnapshot(this.snapshots[this.snapshotIndex + 1]);
+
+            this.snapshotIndex += 1;
+
+        }
+
+        this.refreshDoButtons();
+    };
+
+    Paint.prototype.refreshDoButtons = function () {
+        if (this.canUndo()) {
+            this.undoButton.className = 'button do-button-active';
+        } else {
+            this.undoButton.className = 'button do-button-inactive';
+        }
+
+        if (this.canRedo()) {
+            this.redoButton.className = 'button do-button-active';
+        } else {
+            this.redoButton.className = 'button do-button-inactive';
+        }
+    };
+
     Paint.prototype.save = function () {
         //we first render the painting to a WebGL texture
 
@@ -880,6 +1041,8 @@ var Paint = (function () {
             if (mode === InteractionMode.PANNING) {
                 this.interactionState = InteractionMode.PANNING;
             } else if (mode === InteractionMode.RESIZING) {
+                this.saveSnapshot();
+
                 this.interactionState = InteractionMode.RESIZING;
 
                 this.resizingSide = this.getResizingSide(mouseX, mouseY);
@@ -888,6 +1051,8 @@ var Paint = (function () {
 
             } else if (mode === InteractionMode.PAINTING) {
                 this.interactionState = InteractionMode.PAINTING;
+
+                this.saveSnapshot();
             }
         }
     };

@@ -40,6 +40,12 @@ var Buttons = (function () {
             }());
         }
 
+        this.setIndex = function (index) {
+            activeElement = elements[index];
+
+            refresh();
+        };
+
         refresh();
     };
 
