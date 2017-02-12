@@ -215,6 +215,9 @@ var Paint = (function () {
         this.canvas = canvas;
         this.wgl = wgl;
 
+        wgl.getExtension('OES_texture_float');
+        wgl.getExtension('OES_texture_float_linear');
+
         WrappedGL.loadTextFiles([
             'shaders/splat.vert', 'shaders/splat.frag',
             'shaders/fullscreen.vert',
