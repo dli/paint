@@ -343,11 +343,12 @@ var Simulator = (function () {
     };
 
 
+    //returns whether any simulating actually took place
     Simulator.prototype.simulate = function () {
         var wgl = this.wgl;
 
 
-        if (this.splatAreas.length === 0) return;
+        if (this.splatAreas.length === 0) return false;
 
         var simulationArea = this.getSimulationArea();
 
@@ -491,6 +492,7 @@ var Simulator = (function () {
         }
 
 
+        return true;
     };
 
 

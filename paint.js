@@ -344,6 +344,8 @@ var Paint = (function () {
 
             this.colorModel = ColorModel.RYB;
 
+            this.needsRedraw = true; //whether we need to redraw the painting
+
 
             this.brush = new Brush(wgl, shaderSources, MAX_BRISTLE_COUNT);
 
@@ -373,6 +375,8 @@ var Paint = (function () {
 
                 this.resolutionScale = QUALITIES[index].resolutionScale;
                 this.simulator.changeResolution(this.getPaintingResolutionWidth(), this.getPaintingResolutionHeight());
+
+                this.needsRedraw = true;
             }).bind(this)); 
 
             this.modelButtons = new Buttons(document.getElementById('models'),
@@ -382,6 +386,8 @@ var Paint = (function () {
                   } else if (index === 1) {
                       this.colorModel = ColorModel.RGB;
                   }
+
+                  this.needsRedraw = true;
               }).bind(this));
 
 
@@ -399,15 +405,11 @@ var Paint = (function () {
 
 
             this.clearButton = document.getElementById('clear-button');  
-            this.clearButton.addEventListener('click', (function () {
-                this.saveSnapshot();
-                this.simulator.clear();
-            }).bind(this));
+            this.clearButton.addEventListener('click', this.clear.bind(this));
             this.clearButton.addEventListener('touchstart', (function (event) {
                 event.preventDefault();
 
-                this.saveSnapshot();
-                this.simulator.clear();
+                this.clear();
             }).bind(this));
 
 
@@ -451,6 +453,9 @@ var Paint = (function () {
                 this.canvasTexture = wgl.buildTexture(wgl.RGBA, wgl.UNSIGNED_BYTE, this.canvas.width, this.canvas.height, null, wgl.CLAMP_TO_EDGE, wgl.CLAMP_TO_EDGE, wgl.LINEAR, wgl.LINEAR);
                 this.tempCanvasTexture = wgl.buildTexture(wgl.RGBA, wgl.UNSIGNED_BYTE, this.canvas.width, this.canvas.height, null, wgl.CLAMP_TO_EDGE, wgl.CLAMP_TO_EDGE, wgl.LINEAR, wgl.LINEAR);
                 this.blurredCanvasTexture = wgl.buildTexture(wgl.RGBA, wgl.UNSIGNED_BYTE, this.canvas.width, this.canvas.height, null, wgl.CLAMP_TO_EDGE, wgl.CLAMP_TO_EDGE, wgl.LINEAR, wgl.LINEAR);
+
+
+                this.needsRedraw = true;
             };
             this.onResize();
 
@@ -579,11 +584,9 @@ var Paint = (function () {
 
 
         //update brush
-
         if (this.brushInitialized) {
             this.brush.update(this.brushX, this.brushY, BRUSH_HEIGHT * this.brushScale, this.brushScale);
         }
-
 
 
         //splat into paint and velocity textures
@@ -612,57 +615,58 @@ var Paint = (function () {
 
         }
 
-        this.simulator.simulate();
+        var simulationUpdated = this.simulator.simulate();
 
-
-        //draw painting into texture
-
-
-        wgl.framebufferTexture2D(this.framebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, this.canvasTexture, 0);
-        var clearState = wgl.createClearState()
-            .bindFramebuffer(this.framebuffer)
-            .clearColor(BACKGROUND_GRAY, BACKGROUND_GRAY, BACKGROUND_GRAY, 1.0);
-
-        wgl.clear(clearState, wgl.COLOR_BUFFER_BIT | wgl.DEPTH_BUFFER_BIT);
-
-
-        var paintingProgram;
-
-        if (this.colorModel === ColorModel.RYB) {
-            paintingProgram = this.interactionState === InteractionMode.RESIZING ? this.resizingPaintingProgram : this.paintingProgram;
-        } else if (this.colorModel === ColorModel.RGB) {
-            paintingProgram = this.interactionState === InteractionMode.RESIZING ? this.resizingPaintingProgramRGB : this.paintingProgramRGB;
-        }
-
-        var paintingDrawState = wgl.createDrawState()
-            .bindFramebuffer(this.framebuffer)
-            .vertexAttribPointer(this.quadVertexBuffer, paintingProgram.getAttribLocation('a_position'), 2, wgl.FLOAT, false, 0, 0)
-            .useProgram(paintingProgram)
-            .uniform1f('u_featherSize', RESIZING_FEATHER_SIZE)
-
-            .uniform1f('u_normalScale', NORMAL_SCALE / this.resolutionScale)
-            .uniform1f('u_roughness', ROUGHNESS)
-            .uniform1f('u_diffuseScale', DIFFUSE_SCALE)
-            .uniform1f('u_specularScale', SPECULAR_SCALE)
-            .uniform1f('u_F0', F0)
-            .uniform3f('u_lightDirection', LIGHT_DIRECTION[0], LIGHT_DIRECTION[1], LIGHT_DIRECTION[2])
-
-            .uniform2f('u_paintingPosition', this.paintingRectangle.left, this.paintingRectangle.bottom)
-            .uniform2f('u_paintingResolution', this.simulator.resolutionWidth, this.simulator.resolutionHeight)
-            .uniform2f('u_paintingSize', this.paintingRectangle.width, this.paintingRectangle.height)
-            .uniform2f('u_screenResolution', this.canvas.width, this.canvas.height)
-            .uniformTexture('u_paintTexture', 0, wgl.TEXTURE_2D, this.simulator.paintTexture);
+        if (simulationUpdated) this.needsRedraw = true;
 
 
         //the rectangle we end up drawing the painting into
         var clippedPaintingRectangle = (this.interactionState === InteractionMode.RESIZING ? this.newPaintingRectangle : this.paintingRectangle).clone()
-                                       .intersectRectangle(new Rectangle(0, 0, this.canvas.width, this.canvas.height));
+                                           .intersectRectangle(new Rectangle(0, 0, this.canvas.width, this.canvas.height));
+
+        if (this.needsRedraw) {
+            //draw painting into texture
+
+            wgl.framebufferTexture2D(this.framebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, this.canvasTexture, 0);
+            var clearState = wgl.createClearState()
+                .bindFramebuffer(this.framebuffer)
+                .clearColor(BACKGROUND_GRAY, BACKGROUND_GRAY, BACKGROUND_GRAY, 1.0);
+
+            wgl.clear(clearState, wgl.COLOR_BUFFER_BIT | wgl.DEPTH_BUFFER_BIT);
 
 
-        paintingDrawState.viewport(clippedPaintingRectangle.left, clippedPaintingRectangle.bottom, clippedPaintingRectangle.width, clippedPaintingRectangle.height);
+            var paintingProgram;
 
-        wgl.drawArrays(paintingDrawState, wgl.TRIANGLE_STRIP, 0, 4);
+            if (this.colorModel === ColorModel.RYB) {
+                paintingProgram = this.interactionState === InteractionMode.RESIZING ? this.resizingPaintingProgram : this.paintingProgram;
+            } else if (this.colorModel === ColorModel.RGB) {
+                paintingProgram = this.interactionState === InteractionMode.RESIZING ? this.resizingPaintingProgramRGB : this.paintingProgramRGB;
+            }
 
+            var paintingDrawState = wgl.createDrawState()
+                .bindFramebuffer(this.framebuffer)
+                .vertexAttribPointer(this.quadVertexBuffer, paintingProgram.getAttribLocation('a_position'), 2, wgl.FLOAT, false, 0, 0)
+                .useProgram(paintingProgram)
+                .uniform1f('u_featherSize', RESIZING_FEATHER_SIZE)
+
+                .uniform1f('u_normalScale', NORMAL_SCALE / this.resolutionScale)
+                .uniform1f('u_roughness', ROUGHNESS)
+                .uniform1f('u_diffuseScale', DIFFUSE_SCALE)
+                .uniform1f('u_specularScale', SPECULAR_SCALE)
+                .uniform1f('u_F0', F0)
+                .uniform3f('u_lightDirection', LIGHT_DIRECTION[0], LIGHT_DIRECTION[1], LIGHT_DIRECTION[2])
+
+                .uniform2f('u_paintingPosition', this.paintingRectangle.left, this.paintingRectangle.bottom)
+                .uniform2f('u_paintingResolution', this.simulator.resolutionWidth, this.simulator.resolutionHeight)
+                .uniform2f('u_paintingSize', this.paintingRectangle.width, this.paintingRectangle.height)
+                .uniform2f('u_screenResolution', this.canvas.width, this.canvas.height)
+                .uniformTexture('u_paintTexture', 0, wgl.TEXTURE_2D, this.simulator.paintTexture)
+
+                .viewport(clippedPaintingRectangle.left, clippedPaintingRectangle.bottom, clippedPaintingRectangle.width, clippedPaintingRectangle.height);
+
+            wgl.drawArrays(paintingDrawState, wgl.TRIANGLE_STRIP, 0, 4);
+
+        }
 
         //output painting to screen
         var outputDrawState = wgl.createDrawState()
@@ -674,8 +678,7 @@ var Paint = (function () {
         wgl.drawArrays(outputDrawState, wgl.TRIANGLE_STRIP, 0, 4);
 
 
-
-        this.drawShadow(PAINTING_SHADOW_ALPHA, clippedPaintingRectangle);
+        this.drawShadow(PAINTING_SHADOW_ALPHA, clippedPaintingRectangle); //draw painting shadow
 
 
 
@@ -736,41 +739,41 @@ var Paint = (function () {
         }
 
 
-
-        //blur painting in texture for panel and draw panel to screen
-
         var panelBottom = this.canvas.height - PANEL_HEIGHT;
 
-        //blur the canvas for the panel
+        if (this.needsRedraw) {
+            //blur the canvas for the panel
 
-        var BLUR_FEATHER = ((PANEL_BLUR_SAMPLES - 1) / 2) * PANEL_BLUR_STRIDE;
+            var BLUR_FEATHER = ((PANEL_BLUR_SAMPLES - 1) / 2) * PANEL_BLUR_STRIDE;
 
-        var blurDrawState = wgl.createDrawState()
-            .useProgram(this.blurProgram)
-            .viewport(
-                0,
-                Utilities.clamp(panelBottom - BLUR_FEATHER, 0, this.canvas.height),
-                PANEL_WIDTH + BLUR_FEATHER,
-                PANEL_HEIGHT + BLUR_FEATHER)
-            .bindFramebuffer(this.framebuffer)
-            .uniform2f('u_resolution', this.canvas.width, this.canvas.height)
-            .vertexAttribPointer(this.quadVertexBuffer, 0, 2, wgl.FLOAT, wgl.FALSE, 0, 0);
-
-
-
-        wgl.framebufferTexture2D(this.framebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, this.tempCanvasTexture, 0);
-        blurDrawState.uniformTexture('u_input', 0, wgl.TEXTURE_2D, this.canvasTexture)
-            .uniform2f('u_step', PANEL_BLUR_STRIDE, 0);
-
-        wgl.drawArrays(blurDrawState, wgl.TRIANGLE_STRIP, 0, 4);
+            var blurDrawState = wgl.createDrawState()
+                .useProgram(this.blurProgram)
+                .viewport(
+                    0,
+                    Utilities.clamp(panelBottom - BLUR_FEATHER, 0, this.canvas.height),
+                    PANEL_WIDTH + BLUR_FEATHER,
+                    PANEL_HEIGHT + BLUR_FEATHER)
+                .bindFramebuffer(this.framebuffer)
+                .uniform2f('u_resolution', this.canvas.width, this.canvas.height)
+                .vertexAttribPointer(this.quadVertexBuffer, 0, 2, wgl.FLOAT, wgl.FALSE, 0, 0);
 
 
-        wgl.framebufferTexture2D(this.framebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, this.blurredCanvasTexture, 0);
-        blurDrawState.uniformTexture('u_input', 0, wgl.TEXTURE_2D, this.tempCanvasTexture)
-            .uniform2f('u_step', 0, PANEL_BLUR_STRIDE);
+            wgl.framebufferTexture2D(this.framebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, this.tempCanvasTexture, 0);
+            blurDrawState.uniformTexture('u_input', 0, wgl.TEXTURE_2D, this.canvasTexture)
+                .uniform2f('u_step', PANEL_BLUR_STRIDE, 0);
 
-        wgl.drawArrays(blurDrawState, wgl.TRIANGLE_STRIP, 0, 4);
+            wgl.drawArrays(blurDrawState, wgl.TRIANGLE_STRIP, 0, 4);
 
+
+            wgl.framebufferTexture2D(this.framebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, this.blurredCanvasTexture, 0);
+            blurDrawState.uniformTexture('u_input', 0, wgl.TEXTURE_2D, this.tempCanvasTexture)
+                .uniform2f('u_step', 0, PANEL_BLUR_STRIDE);
+
+            wgl.drawArrays(blurDrawState, wgl.TRIANGLE_STRIP, 0, 4);
+        }
+
+        
+        //draw panel to screen
 
         var panelDrawState = wgl.createDrawState()
             .viewport(0, panelBottom, PANEL_WIDTH, PANEL_HEIGHT)
@@ -782,17 +785,23 @@ var Paint = (function () {
 
         wgl.drawArrays(panelDrawState, wgl.TRIANGLE_STRIP, 0, 4);
 
+
+        this.drawShadow(PANEL_SHADOW_ALPHA, new Rectangle(0, panelBottom, PANEL_WIDTH, PANEL_HEIGHT)); //shadow for panel
         
 
-
-        //shadow for panel
-        this.drawShadow(PANEL_SHADOW_ALPHA, new Rectangle(0, panelBottom, PANEL_WIDTH, PANEL_HEIGHT));
-
+        this.needsRedraw = false;
 
         this.colorPicker.draw(this.colorModel === ColorModel.RGB);
 
 
         //this.brushViewer.draw(this.brushX, this.brushY, this.brush);
+    };
+
+
+    Paint.prototype.clear = function () {
+        this.simulator.clear();
+
+        this.needsRedraw = true;
     };
 
 
@@ -872,6 +881,8 @@ var Paint = (function () {
         }
 
         this.refreshDoButtons();
+
+        this.needsRedraw = true;
     };
 
     Paint.prototype.redo = function () {
@@ -883,6 +894,8 @@ var Paint = (function () {
         }
 
         this.refreshDoButtons();
+
+        this.needsRedraw = true;
     };
 
     Paint.prototype.refreshDoButtons = function () {
@@ -988,6 +1001,8 @@ var Paint = (function () {
 
             this.paintingRectangle.left = Utilities.clamp(this.paintingRectangle.left, -this.paintingRectangle.width, this.canvas.width);
             this.paintingRectangle.bottom = Utilities.clamp(this.paintingRectangle.bottom, -this.paintingRectangle.height, this.canvas.height);
+
+            this.needsRedraw = true;
         } else if (this.interactionState === InteractionMode.RESIZING) {
             if (this.resizingSide === ResizingSide.LEFT || this.resizingSide === ResizingSide.TOP_LEFT || this.resizingSide === ResizingSide.BOTTOM_LEFT) {
                 this.newPaintingRectangle.left = Utilities.clamp(mouseX,
@@ -1011,6 +1026,8 @@ var Paint = (function () {
             if (this.resizingSide === ResizingSide.TOP || this.resizingSide === ResizingSide.TOP_LEFT || this.resizingSide === ResizingSide.TOP_RIGHT) {
                 this.newPaintingRectangle.height = Utilities.clamp(mouseY - this.paintingRectangle.bottom, MIN_PAINTING_WIDTH, this.maxPaintingWidth);
             }
+
+            this.needsRedraw = true;
         }
 
         this.colorPicker.onMouseMove(position.x, this.canvas.height - position.y);
@@ -1139,6 +1156,9 @@ var Paint = (function () {
             this.paintingRectangle = this.newPaintingRectangle;
 
             this.simulator.resize(this.getPaintingResolutionWidth(), this.getPaintingResolutionHeight(), offsetX, offsetY, RESIZING_FEATHER_SIZE);
+
+            
+            this.needsRedraw = true;
         }
 
         this.interactionState = InteractionMode.NONE;
