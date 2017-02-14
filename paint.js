@@ -51,7 +51,7 @@ var Paint = (function () {
     //brush parameters
     var MAX_BRISTLE_COUNT = 100;
     var MIN_BRISTLE_COUNT = 10;
-    var MIN_BRUSH_SCALE = 10;
+    var MIN_BRUSH_SCALE = 5;
     var MAX_BRUSH_SCALE = 75;
     var BRUSH_HEIGHT = 2.0; //how high the brush is over the canvas - this is scaled with the brushScale
     var Z_THRESHOLD = 0.13333; //this is scaled with the brushScale
