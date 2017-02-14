@@ -16,9 +16,9 @@ var Buttons = (function () {
         var refresh = function () {
             for (var i = 0; i < elements.length; ++i) {
                 if (elements[i] === activeElement) {
-                    elements[i].className = 'quality-selected';
+                    elements[i].className = 'button-selected';
                 } else {
-                    elements[i].className = 'quality-unselected';
+                    elements[i].className = 'button-unselected';
                 }
             }
         };

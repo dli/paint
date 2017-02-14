@@ -41,12 +41,14 @@ var ColorPicker = (function () {
         this.pickerProgram = wgl.createProgram(
             shaderSources['shaders/picker.vert'], shaderSources['shaders/picker.frag'], { 'a_position': 0 });
 
+        this.pickerProgramRGB = wgl.createProgram(
+            shaderSources['shaders/picker.vert'], '#define RGB \n ' + shaderSources['shaders/picker.frag'], { 'a_position': 0 });
 
         this.quadVertexBuffer = wgl.createBuffer();
         wgl.bufferData(this.quadVertexBuffer, wgl.ARRAY_BUFFER, new Float32Array([-1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0]), wgl.STATIC_DRAW);
     }
 
-    ColorPicker.prototype.draw = function () {
+    ColorPicker.prototype.draw = function (rgbModel) {
         var wgl = this.wgl;
 
         var hsva = this.painter[this.parameterName];
@@ -55,7 +57,7 @@ var ColorPicker = (function () {
             .bindFramebuffer(null)
             .viewport(0, 0, this.canvas.width, this.canvas.height)
             .vertexAttribPointer(this.quadVertexBuffer, 0, 2, wgl.FLOAT, wgl.FALSE, 0, 0)
-            .useProgram(this.pickerProgram)
+            .useProgram(rgbModel ? this.pickerProgramRGB : this.pickerProgram)
             .uniform2f('u_resolution', WIDTH, HEIGHT)
             .uniform1f('u_innerRadius', INNER_RADIUS)
             .uniform1f('u_outerRadius', OUTER_RADIUS)

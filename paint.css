@@ -99,20 +99,20 @@ body {
     pointer-events: auto;
 }
 
-#qualities {
+.buttons {
     margin-top: 7px;
     margin-left: 30px;
 
     height: 26px;
 }
 
-#qualities div {
+.buttons div {
     box-sizing: border-box;
 
     float: left;
     width: 80px;
 
-    padding: 4px 0px;
+    padding: 3px 0px;
 
     border-top: 1px solid white;
     border-bottom: 1px solid white;
@@ -124,22 +124,30 @@ body {
     pointer-events: auto;
 }
 
-#qualities div:first-child {
+.buttons div:first-child {
     border-left: 1px solid white;
 }
 
-#qualities div:last-child {
+.buttons div:last-child {
     border-right: 1px solid white;
 }
 
-.quality-selected {
+#qualities div {
+    width: 80px;
+}
+
+#models div {
+    width: 120px;
+}
+
+.button-selected {
     background: white;
     color: black;
 
     cursor: default;
 }
 
-.quality-unselected {
+.button-unselected {
     color: white;
 
     cursor: pointer;
@@ -209,7 +217,7 @@ body {
 }
 
 .do-button-active {
-    margin-top: 205px;
+    margin-top: 200px;
 
     background: rgb(30, 100, 130);
 }
@@ -223,7 +231,7 @@ body {
 }
 
 .do-button-inactive {
-    margin-top: 205px;
+    margin-top: 200px;
 
     cursor: default;
 

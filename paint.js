@@ -20,6 +20,11 @@ var Paint = (function () {
         BOTTOM_RIGHT: 8
     };
 
+    var ColorModel = {
+        RYB: 0,
+        RGB: 1
+    };
+
 
     var QUALITIES = [
         {
@@ -67,12 +72,12 @@ var Paint = (function () {
 
     //panel is aligned with the top left
     var PANEL_WIDTH = 300;
-    var PANEL_HEIGHT = 530;
+    var PANEL_HEIGHT = 580;
     var PANEL_BLUR_SAMPLES = 13;
     var PANEL_BLUR_STRIDE = 8;
 
     var COLOR_PICKER_LEFT = 20;
-    var COLOR_PICKER_TOP = 467;
+    var COLOR_PICKER_TOP = 523;
 
     var RESIZING_RADIUS = 20;
     var RESIZING_FEATHER_SIZE = 8; //in pixels 
@@ -254,11 +259,20 @@ var Paint = (function () {
             this.paintingProgram = wgl.createProgram(
                 shaderSources['shaders/painting.vert'], shaderSources['shaders/painting.frag']);
 
+            this.paintingProgramRGB = wgl.createProgram(
+                shaderSources['shaders/painting.vert'], '#define RGB \n ' + shaderSources['shaders/painting.frag']);
+
             this.resizingPaintingProgram = wgl.createProgram(
                 shaderSources['shaders/painting.vert'], '#define RESIZING \n ' + shaderSources['shaders/painting.frag']);
 
+            this.resizingPaintingProgramRGB = wgl.createProgram(
+                shaderSources['shaders/painting.vert'], '#define RESIZING \n #define RGB \n ' + shaderSources['shaders/painting.frag']);
+
             this.savePaintingProgram = wgl.createProgram(
                 shaderSources['shaders/painting.vert'], '#define SAVE \n ' + shaderSources['shaders/painting.frag']);
+
+            this.savePaintingProgramRGB = wgl.createProgram(
+                shaderSources['shaders/painting.vert'], '#define SAVE \n #define RGB \n ' + shaderSources['shaders/painting.frag']);
 
             this.brushProgram = wgl.createProgram(
                 shaderSources['shaders/brush.vert'], shaderSources['shaders/brush.frag'], { 'a_position': 0 });
@@ -328,6 +342,9 @@ var Paint = (function () {
             this.brushColorHSVA = [Math.random(), 1, 1, 0.8];
 
 
+            this.colorModel = ColorModel.RYB;
+
+
             this.brush = new Brush(wgl, shaderSources, MAX_BRISTLE_COUNT);
 
 
@@ -357,6 +374,15 @@ var Paint = (function () {
                 this.resolutionScale = QUALITIES[index].resolutionScale;
                 this.simulator.changeResolution(this.getPaintingResolutionWidth(), this.getPaintingResolutionHeight());
             }).bind(this)); 
+
+            this.modelButtons = new Buttons(document.getElementById('models'),
+              ['Natural', 'Digital'], 0, (function (index) {
+                  if (index === 0) {
+                      this.colorModel = ColorModel.RYB;
+                  } else if (index === 1) {
+                      this.colorModel = ColorModel.RGB;
+                  }
+              }).bind(this));
 
 
             this.colorPicker = new ColorPicker(this, 'brushColorHSVA', wgl, canvas, shaderSources, COLOR_PICKER_LEFT, 0);
@@ -600,7 +626,13 @@ var Paint = (function () {
         wgl.clear(clearState, wgl.COLOR_BUFFER_BIT | wgl.DEPTH_BUFFER_BIT);
 
 
-        var paintingProgram = this.interactionState === InteractionMode.RESIZING ? this.resizingPaintingProgram : this.paintingProgram;
+        var paintingProgram;
+
+        if (this.colorModel === ColorModel.RYB) {
+            paintingProgram = this.interactionState === InteractionMode.RESIZING ? this.resizingPaintingProgram : this.paintingProgram;
+        } else if (this.colorModel === ColorModel.RGB) {
+            paintingProgram = this.interactionState === InteractionMode.RESIZING ? this.resizingPaintingProgramRGB : this.paintingProgramRGB;
+        }
 
         var paintingDrawState = wgl.createDrawState()
             .bindFramebuffer(this.framebuffer)
@@ -757,7 +789,7 @@ var Paint = (function () {
         this.drawShadow(PANEL_SHADOW_ALPHA, new Rectangle(0, panelBottom, PANEL_WIDTH, PANEL_HEIGHT));
 
 
-        this.colorPicker.draw();
+        this.colorPicker.draw(this.colorModel === ColorModel.RGB);
 
 
         //this.brushViewer.draw(this.brushX, this.brushY, this.brush);
@@ -880,11 +912,13 @@ var Paint = (function () {
         var saveFramebuffer = wgl.createFramebuffer();
         wgl.framebufferTexture2D(saveFramebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, saveTexture, 0);
 
+        var paintingProgram = this.colorModel === ColorModel.RYB ? this.savePaintingProgram : this.savePaintingProgramRGB;
+
         var saveDrawState = wgl.createDrawState()
             .bindFramebuffer(saveFramebuffer)
             .viewport(0, 0, saveWidth, saveHeight)
-            .vertexAttribPointer(this.quadVertexBuffer, this.paintingProgram.getAttribLocation('a_position'), 2, wgl.FLOAT, false, 0, 0)
-            .useProgram(this.savePaintingProgram)
+            .vertexAttribPointer(this.quadVertexBuffer, paintingProgram.getAttribLocation('a_position'), 2, wgl.FLOAT, false, 0, 0)
+            .useProgram(paintingProgram)
             .uniform2f('u_paintingSize', this.paintingRectangle.width, this.paintingRectangle.height)
             .uniform2f('u_paintingResolution', this.simulator.resolutionWidth, this.simulator.resolutionHeight)
             .uniform2f('u_screenResolution', this.paintingRectangle.width, this.paintingRectangle.height)
