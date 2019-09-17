@@ -41,6 +41,7 @@ body {
     cursor: pointer;
 
     pointer-events: auto;
+    text-decoration: none;
 }
 
 #clear-button {
