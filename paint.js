@@ -913,6 +913,10 @@ var Paint = (function () {
     };
 
     Paint.prototype.save = function () {
+        //reset attributes so nothing gets saved if we hit an error somewhere
+        this.saveButton.removeAttribute('download');
+        this.saveButton.setAttribute('href', '#');
+
         //we first render the painting to a WebGL texture
 
         var wgl = this.wgl;
@@ -971,7 +975,8 @@ var Paint = (function () {
         imageData.data.set(savePixels);
         saveContext.putImageData(imageData, 0, 0);
 
-        window.open(saveCanvas.toDataURL());
+        this.saveButton.setAttribute('download', 'painting.png');
+        this.saveButton.setAttribute('href', saveCanvas.toDataURL());
     };
 
     Paint.prototype.onMouseMove = function (event) {
