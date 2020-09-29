@@ -1,4 +1,4 @@
-### Fluid Paint
+# Fluid Paint
 
 ![](http://david.li/images/paintgithub.png)
 
