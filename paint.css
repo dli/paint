@@ -42,6 +42,15 @@ body {
 
     pointer-events: auto;
 }
+.checkbox {
+    display: inline-block;
+    text-align: center;
+    color: white;
+
+    cursor: pointer;
+
+    pointer-events: auto;
+}
 
 #clear-button {
     margin-left: 30px;

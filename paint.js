@@ -337,7 +337,7 @@ var Paint = (function () {
             this.brushX = 0;
             this.brushY = 0;
 
-            this.brushScale = 50;
+            this.brushScale = 5;
 
             this.brushColorHSVA = [Math.random(), 1, 1, 0.8];
 
@@ -429,7 +429,7 @@ var Paint = (function () {
 
             this.refreshDoButtons();
 
-
+            this.stylusButton = document.getElementById('stylus-pressure-support');
 
             this.mainProjectionMatrix = makeOrthographicMatrix(new Float32Array(16), 0.0, this.canvas.width, 0, this.canvas.height, -5000.0, 5000.0);
 
@@ -1186,13 +1186,16 @@ var Paint = (function () {
         var scrollDelta = event.deltaY < 0.0 ? -1.0 : 1.0;
 
         this.brushScale = Utilities.clamp(this.brushScale + scrollDelta * -5.0, MIN_BRUSH_SCALE, MAX_BRUSH_SCALE);
-
         this.brushSizeSlider.setValue(this.brushScale);
     };
 
 
     Paint.prototype.onTouchStart = function (event) {
         event.preventDefault();
+        if(this.stylusButton.checked){
+            this.brushScale = Utilities.clamp(event.targetTouches[0].force*100, MIN_BRUSH_SCALE, MAX_BRUSH_SCALE);
+            this.brushSizeSlider.setValue(this.brushScale);
+        }
 
         if (event.touches.length === 1) { //if this is the first touch
 
@@ -1212,13 +1215,19 @@ var Paint = (function () {
 
     Paint.prototype.onTouchMove = function (event) {
         event.preventDefault();
+        if(this.stylusButton.checked){
+            this.brushScale = Utilities.clamp(event.targetTouches[0].force*100, MIN_BRUSH_SCALE, MAX_BRUSH_SCALE);
+            this.brushSizeSlider.setValue(this.brushScale);
+        }
 
         this.onMouseMove(event.targetTouches[0]);
     };
 
     Paint.prototype.onTouchEnd = function (event) {
         event.preventDefault();
-
+        if(this.stylusButton.checked){
+            this.brushSizeSlider.setValue(5);
+        }
         if (event.touches.length > 0) return; //don't fire if there are still touches remaining
 
         this.onMouseUp({});
@@ -1226,7 +1235,9 @@ var Paint = (function () {
 
     Paint.prototype.onTouchCancel = function (event) {
         event.preventDefault();
-
+        if(this.stylusButton.checked){
+            this.brushSizeSlider.setValue(5);
+        }
         if (event.touches.length > 0) return; //don't fire if there are still touches remaining
 
         this.onMouseUp({});
