@@ -589,7 +589,7 @@ var Paint = (function () {
 			canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
 			canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
 			document.addEventListener('mouseup', this.onMouseUp.bind(this));
-			canvas.addEventListener('mouseover', this.onMouseOver.bind(this));
+			// canvas.addEventListener('mouseover', this.onMouseOver.bind(this));
 
 			document.addEventListener('wheel', this.onWheel.bind(this));
 
@@ -632,16 +632,22 @@ var Paint = (function () {
 
 			this.interactionState = InteractionMode.NONE;
 
-			// Create an osc.js UDP Port listening on port 57121.
-			var udpPort = new osc.UDPPort({
-				localAddress: '0.0.0.0',
-				localPort: 57121,
-				metadata: true,
+			var port = new osc.WebSocketPort({
+				url: 'ws://localhost:8081',
 			});
 
-			udpPort.on('message', function (oscMsg) {
-				console.log('An OSC message just arrived!', oscMsg);
+			port.on('ready', () => {
+				port.on('message', (msg) => {
+					const [x, y] = msg.args;
+					this.interactionState = InteractionMode.PAINTING;
+					this.onBrushMove(x, y);
+					this.colorPicker.onMouseDown(this.brushX, this.brushY);
+					this.needsRedraw = true;
+					console.log(this.brushX, this.brushY);
+				});
 			});
+
+			port.open();
 
 			var update = function () {
 				this.update();
@@ -1308,6 +1314,26 @@ var Paint = (function () {
 		this.mouseY = mouseY;
 	};
 
+	Paint.prototype.onBrushMove = function (x, y) {
+		var position = Utilities.getBrushPosition(x, y, this.canvas);
+
+		var mouseX = position.x;
+		var mouseY = this.canvas.height - position.y;
+
+		this.brushX = mouseX;
+		this.brushY = mouseY;
+
+		if (!this.brushInitialized) {
+			this.brush.initialize(this.brushX, this.brushY, BRUSH_HEIGHT * this.brushScale, this.brushScale);
+			this.brushInitialized = true;
+		}
+
+		this.colorPicker.onMouseMove(position.x, this.canvas.height - position.y);
+
+		this.mouseX = mouseX;
+		this.mouseY = mouseY;
+	};
+
 	Paint.prototype.getResizingSide = function (mouseX, mouseY) {
 		//the side we'd be resizing with the current mouse position
 		//we can resize if our perpendicular distance to an edge is less than RESIZING_RADIUS
@@ -1371,6 +1397,7 @@ var Paint = (function () {
 
 	//what interaction mode would be triggered if we clicked with given mouse position
 	Paint.prototype.desiredInteractionMode = function (mouseX, mouseY) {
+		return InteractionMode.PAINTING;
 		var mouseOverPanel = mouseX < PANEL_WIDTH && mouseY > this.canvas.height - PANEL_HEIGHT;
 
 		if (mouseOverPanel) {

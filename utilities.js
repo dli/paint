@@ -1,23 +1,31 @@
 var Utilities = (function () {
-    'use strict';
+	'use strict';
 
-    return {
-        swap: function (object, a, b) {
-            var temp = object[a];
-            object[a] = object[b];
-            object[b] = temp;
-        },
+	return {
+		swap: function (object, a, b) {
+			var temp = object[a];
+			object[a] = object[b];
+			object[b] = temp;
+		},
 
-        clamp: function (x, min, max) {
-            return Math.max(min, Math.min(max, x));
-        },
+		clamp: function (x, min, max) {
+			return Math.max(min, Math.min(max, x));
+		},
 
-        getMousePosition: function (event, element) {
-            var boundingRect = element.getBoundingClientRect();
-            return {
-                x: event.clientX - boundingRect.left,
-                y: event.clientY - boundingRect.top
-            };
-        }
-    };
-}());
+		getMousePosition: function (event, element) {
+			var boundingRect = element.getBoundingClientRect();
+			return {
+				x: event.clientX - boundingRect.left,
+				y: event.clientY - boundingRect.top,
+			};
+		},
+
+		getBrushPosition: (x, y, element) => {
+			var boundingRect = element.getBoundingClientRect();
+			return {
+				x: x - boundingRect.left,
+				y: y - boundingRect.top,
+			};
+		},
+	};
+})();

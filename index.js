@@ -38,6 +38,8 @@ udp.on('ready', function () {
 		console.log(' Host:', address + ', Port:', udp.options.localPort);
 	});
 	console.log('Broadcasting OSC over UDP to', udp.options.remoteAddress + ', Port:', udp.options.remotePort);
+
+	udp.on('message', (data) => console.log(data));
 });
 
 udp.open();

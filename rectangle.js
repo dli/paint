@@ -1,91 +1,89 @@
 var Rectangle = (function () {
+	function Rectangle(left, bottom, width, height) {
+		this.left = left;
+		this.bottom = bottom;
+		this.width = width;
+		this.height = height;
+	}
 
-    function Rectangle (left, bottom, width, height) {
-        this.left = left;
-        this.bottom = bottom;
-        this.width = width;
-        this.height = height;
-    }
+	Rectangle.prototype.getRight = function () {
+		return this.left + this.width;
+	};
 
-    Rectangle.prototype.getRight = function () {
-        return this.left + this.width;
-    };
+	Rectangle.prototype.getTop = function () {
+		return this.bottom + this.height;
+	};
 
-    Rectangle.prototype.getTop = function () {
-        return this.bottom + this.height;
-    };
+	Rectangle.prototype.setRight = function (right) {
+		this.width = right - this.left;
 
-    Rectangle.prototype.setRight = function (right) {
-        this.width = right - this.left;
+		return this;
+	};
 
-        return this;
-    };
+	Rectangle.prototype.setTop = function (top) {
+		this.height = top - this.bottom;
 
-    Rectangle.prototype.setTop = function (top) {
-        this.height = top - this.bottom;
+		return this;
+	};
 
-        return this;
-    };
+	Rectangle.prototype.clone = function () {
+		return new Rectangle(this.left, this.bottom, this.width, this.height);
+	};
 
-    Rectangle.prototype.clone = function () {
-        return new Rectangle(this.left, this.bottom, this.width, this.height);
-    };
+	Rectangle.prototype.includeRectangle = function (rectangle) {
+		var newRight = Math.max(this.getRight(), rectangle.getRight());
+		var newTop = Math.max(this.getTop(), rectangle.getTop());
 
+		this.left = Math.min(this.left, rectangle.left);
+		this.bottom = Math.min(this.bottom, rectangle.bottom);
 
-    Rectangle.prototype.includeRectangle = function (rectangle) {
-        var newRight = Math.max(this.getRight(), rectangle.getRight());
-        var newTop = Math.max(this.getTop(), rectangle.getTop());
+		this.setRight(newRight);
+		this.setTop(newTop);
 
-        this.left = Math.min(this.left, rectangle.left);
-        this.bottom = Math.min(this.bottom, rectangle.bottom);
+		return this;
+	};
 
-        this.setRight(newRight);
-        this.setTop(newTop);
+	Rectangle.prototype.intersectRectangle = function (rectangle) {
+		var newRight = Math.min(this.getRight(), rectangle.getRight());
+		var newTop = Math.min(this.getTop(), rectangle.getTop());
 
-        return this;
-    };
+		this.left = Math.max(this.left, rectangle.left);
+		this.bottom = Math.max(this.bottom, rectangle.bottom);
 
-    Rectangle.prototype.intersectRectangle = function (rectangle) {
-        var newRight = Math.min(this.getRight(), rectangle.getRight());
-        var newTop = Math.min(this.getTop(), rectangle.getTop());
+		this.setRight(newRight);
+		this.setTop(newTop);
 
-        this.left = Math.max(this.left, rectangle.left);
-        this.bottom = Math.max(this.bottom, rectangle.bottom);
+		return this;
+	};
 
-        this.setRight(newRight);
-        this.setTop(newTop);
+	Rectangle.prototype.translate = function (x, y) {
+		this.left += x;
+		this.bottom += y;
 
-        return this;
-    };
+		return this;
+	};
 
-    Rectangle.prototype.translate = function (x, y) {
-        this.left += x;
-        this.bottom += y;
+	Rectangle.prototype.scale = function (x, y) {
+		this.left *= x;
+		this.bottom *= y;
 
-        return this;
-    };
+		this.width *= x;
+		this.height *= y;
 
-    Rectangle.prototype.scale = function (x, y) {
-        this.left *= x;
-        this.bottom *= y;
+		return this;
+	};
 
-        this.width *= x;
-        this.height *= y;
+	Rectangle.prototype.round = function () {
+		this.left = Math.round(this.left);
+		this.bottom = Math.round(this.bottom);
 
-        return this;
-    };
+		this.width = Math.round(this.width);
+		this.height = Math.round(this.height);
+	};
 
-    Rectangle.prototype.round = function () {
-        this.left = Math.round(this.left);
-        this.bottom = Math.round(this.bottom);
+	Rectangle.prototype.getArea = function () {
+		return this.width * this.height;
+	};
 
-        this.width = Math.round(this.width);
-        this.height = Math.round(this.height);
-    };
-
-    Rectangle.prototype.getArea = function () {
-        return this.width * this.height;
-    };
-
-    return Rectangle;
-}());
+	return Rectangle;
+})();

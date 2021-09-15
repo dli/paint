@@ -1,239 +1,237 @@
 * {
-    font-family: 'Open Sans', Helvetica, sans-serif;
+	font-family: 'Open Sans', Helvetica, sans-serif;
 }
 
 body {
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
 
-    user-select: none;
-    -moz-user-select: none;
-    -webkit-user-select: none;
-    -ms-user-select: none;
+	user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
 }
 
 #ui {
-    pointer-events: none;
+	pointer-events: none;
 
-    position: absolute;
+	position: absolute;
 
-    top: 0;
-    left: 0;
+	top: 0;
+	left: 0;
 
-    width: 300px;
+	width: 300px;
 }
 
-
 .button {
-    display: inline-block;
+	display: inline-block;
 
-    margin-top: 24px;
+	margin-top: 24px;
 
-    width: 115px;
-    height: 30px;
-    line-height: 30px;
+	width: 115px;
+	height: 30px;
+	line-height: 30px;
 
-    text-align: center;
-    font-size: 12px;
-    color: white;
+	text-align: center;
+	font-size: 12px;
+	color: white;
 
-    cursor: pointer;
+	cursor: pointer;
 
-    pointer-events: auto;
+	pointer-events: auto;
 }
 
 #clear-button {
-    margin-left: 30px;
+	margin-left: 30px;
 
-    background: rgb(220, 0, 40);
+	background: rgb(220, 0, 40);
 }
 
 #clear-button:hover {
-    background: rgb(210, 0, 30);
+	background: rgb(210, 0, 30);
 }
 
 #clear-button:active {
-    background: rgb(200, 0, 20);
+	background: rgb(200, 0, 20);
 }
 
 #save-button {
-    background: rgb(0, 170, 50);
+	background: rgb(0, 170, 50);
 
-    margin-left: 10px;
+	margin-left: 10px;
 }
 
 #save-button:hover {
-    background: rgb(0, 160, 40);
+	background: rgb(0, 160, 40);
 }
 
 #save-button:active {
-    background: rgb(0, 150, 30);
+	background: rgb(0, 150, 30);
 }
 
-
 .control-label {
-    margin-left: 30px;
-    margin-top: 9px;
+	margin-left: 30px;
+	margin-top: 9px;
 
-    color: white;
-    font-size: 12px;
+	color: white;
+	font-size: 12px;
 }
 
 .slider {
-    margin-top: 3px;
-    margin-left: 30px;
+	margin-top: 3px;
+	margin-left: 30px;
 
-    position: relative;
+	position: relative;
 
-    width: 240px;
-    height: 15px;
+	width: 240px;
+	height: 15px;
 
-    user-select: none;
-    -moz-user-select: none;
-    -webkit-user-select: none;
-    -ms-user-select: none;
+	user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
 
-    cursor: ew-resize;
+	cursor: ew-resize;
 
-    pointer-events: auto;
+	pointer-events: auto;
 }
 
 .buttons {
-    margin-top: 7px;
-    margin-left: 30px;
+	margin-top: 7px;
+	margin-left: 30px;
 
-    height: 26px;
+	height: 26px;
 }
 
 .buttons div {
-    box-sizing: border-box;
+	box-sizing: border-box;
 
-    float: left;
-    width: 80px;
+	float: left;
+	width: 80px;
 
-    padding: 3px 0px;
+	padding: 3px 0px;
 
-    border-top: 1px solid white;
-    border-bottom: 1px solid white;
-    border-left: 1px solid white;
+	border-top: 1px solid white;
+	border-bottom: 1px solid white;
+	border-left: 1px solid white;
 
-    font-size: 11px;
-    text-align: center;
+	font-size: 11px;
+	text-align: center;
 
-    pointer-events: auto;
+	pointer-events: auto;
 }
 
 .buttons div:first-child {
-    border-left: 1px solid white;
+	border-left: 1px solid white;
 }
 
 .buttons div:last-child {
-    border-right: 1px solid white;
+	border-right: 1px solid white;
 }
 
 #qualities div {
-    width: 80px;
+	width: 80px;
 }
 
 #models div {
-    width: 120px;
+	width: 120px;
 }
 
 .button-selected {
-    background: white;
-    color: black;
+	background: white;
+	color: black;
 
-    cursor: default;
+	cursor: default;
 }
 
 .button-unselected {
-    color: white;
+	color: white;
 
-    cursor: pointer;
+	cursor: pointer;
 }
 
 #instructions {
-    position: absolute;
+	position: absolute;
 
-    bottom: 24px;
-    left: 30px;
+	bottom: 24px;
+	left: 30px;
 
-    line-height: 16px;
-    font-size: 12px;
-    color: #111111;
+	line-height: 16px;
+	font-size: 12px;
+	color: #111111;
 
-    pointer-events: none;
+	pointer-events: none;
 }
 
 #instructions span {
-    font-weight: bold;
+	font-weight: bold;
 
-    color: #111111;
+	color: #111111;
 }
 
 #footer {
-    position: absolute;
+	position: absolute;
 
-    bottom: 24px;
-    right: 30px;
+	bottom: 24px;
+	right: 30px;
 
-    color: #111111;
-    font-size: 12px;
-    line-height: 16px;
+	color: #111111;
+	font-size: 12px;
+	line-height: 16px;
 }
 
 #footer a {
-    color: #111111;
+	color: #111111;
 }
 
 #no-support-container {
-    position: absolute;
-    width: 100%;
-    height: 30px;
-    top: 50%;
-    margin-top: -15px;
+	position: absolute;
+	width: 100%;
+	height: 30px;
+	top: 50%;
+	margin-top: -15px;
 
-    text-align: center;
-    font-size: 16px;
+	text-align: center;
+	font-size: 16px;
 
-    color: #333333;
+	color: #333333;
 }
 
 #no-support-container a {
-    color: #333333;
+	color: #333333;
 }
 
 #backlink {
-    margin-top: 20px;
+	margin-top: 20px;
 }
 
 #undo-button {
-    margin-left: 30px;
+	margin-left: 30px;
 }
 
 #redo-button {
-    margin-left: 10px;
+	margin-left: 10px;
 }
 
 .do-button-active {
-    margin-top: 200px;
+	margin-top: 200px;
 
-    background: rgb(30, 100, 130);
+	background: rgb(30, 100, 130);
 }
 
 .do-button-active:hover {
-    background: rgb(20, 90, 120);
+	background: rgb(20, 90, 120);
 }
 
 .do-button-active:active {
-    background: rgb(10, 80, 110);
+	background: rgb(10, 80, 110);
 }
 
 .do-button-inactive {
-    margin-top: 200px;
+	margin-top: 200px;
 
-    cursor: default;
+	cursor: default;
 
-    background: #666666;
+	background: #666666;
 }
