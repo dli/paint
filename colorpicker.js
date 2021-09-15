@@ -178,5 +178,17 @@ var ColorPicker = (function () {
 		}
 	};
 
+	ColorPicker.prototype.updateColor = function (value, channel) {
+		if (channel === 'hue') {
+			this.painter[this.parameterName][0] = Utilities.clamp(value, 0, 1);
+		} else if (channel === 'saturation') {
+			this.painter[this.parameterName][1] = Utilities.clamp(value, 0, 1);
+		} else if (channel === 'brightness') {
+			this.painter[this.parameterName][2] = Utilities.clamp(value, 0, 1);
+		} else {
+			this.painter[this.parameterName][3] = Utilities.clamp(value, 0, 1);
+		}
+	};
+
 	return ColorPicker;
 })();

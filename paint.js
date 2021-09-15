@@ -391,116 +391,7 @@ var Paint = (function () {
 
 			this.brush = new Brush(wgl, shaderSources, MAX_BRISTLE_COUNT);
 
-			this.fluiditySlider = new Slider(
-				document.getElementById('fluidity-slider'),
-				this.simulator.fluidity,
-				0.6,
-				0.9,
-				function (fluidity) {
-					this.simulator.fluidity = fluidity;
-				}.bind(this)
-			);
-
-			this.bristleCountSlider = new Slider(
-				document.getElementById('bristles-slider'),
-				1,
-				0,
-				1,
-				function (t) {
-					var BRISTLE_SLIDER_POWER = 2.0;
-					t = Math.pow(t, BRISTLE_SLIDER_POWER);
-					var bristleCount = Math.floor(MIN_BRISTLE_COUNT + t * (MAX_BRISTLE_COUNT - MIN_BRISTLE_COUNT));
-					this.brush.setBristleCount(bristleCount);
-				}.bind(this)
-			);
-
-			this.brushSizeSlider = new Slider(
-				document.getElementById('size-slider'),
-				this.brushScale,
-				MIN_BRUSH_SCALE,
-				MAX_BRUSH_SCALE,
-				function (size) {
-					this.brushScale = size;
-				}.bind(this)
-			);
-
-			this.qualityButtons = new Buttons(
-				document.getElementById('qualities'),
-				QUALITIES.map(function (q) {
-					return q.name;
-				}),
-				INITIAL_QUALITY,
-				function (index) {
-					this.saveSnapshot();
-
-					this.resolutionScale = QUALITIES[index].resolutionScale;
-					this.simulator.changeResolution(this.getPaintingResolutionWidth(), this.getPaintingResolutionHeight());
-
-					this.needsRedraw = true;
-				}.bind(this)
-			);
-
-			this.modelButtons = new Buttons(
-				document.getElementById('models'),
-				['Natural', 'Digital'],
-				0,
-				function (index) {
-					if (index === 0) {
-						this.colorModel = ColorModel.RYB;
-					} else if (index === 1) {
-						this.colorModel = ColorModel.RGB;
-					}
-
-					this.needsRedraw = true;
-				}.bind(this)
-			);
-
 			this.colorPicker = new ColorPicker(this, 'brushColorHSVA', wgl, canvas, shaderSources, COLOR_PICKER_LEFT, 0);
-
-			//this.brushViewer = new BrushViewer(wgl, this.brushProgram, 0, 800, 200, 300);
-
-			this.saveButton = document.getElementById('save-button');
-			this.saveButton.addEventListener('click', this.save.bind(this));
-			this.saveButton.addEventListener(
-				'touchstart',
-				function (event) {
-					event.preventDefault();
-					this.save();
-				}.bind(this)
-			);
-
-			this.clearButton = document.getElementById('clear-button');
-			this.clearButton.addEventListener('click', this.clear.bind(this));
-			this.clearButton.addEventListener(
-				'touchstart',
-				function (event) {
-					event.preventDefault();
-
-					this.clear();
-				}.bind(this)
-			);
-
-			this.undoButton = document.getElementById('undo-button');
-			this.undoButton.addEventListener('click', this.undo.bind(this));
-			this.undoButton.addEventListener(
-				'touchstart',
-				function (event) {
-					event.preventDefault();
-					this.undo();
-				}.bind(this)
-			);
-
-			this.redoButton = document.getElementById('redo-button');
-			this.redoButton.addEventListener('click', this.redo.bind(this));
-			this.redoButton.addEventListener(
-				'touchstart',
-				function (event) {
-					event.preventDefault();
-					this.redo();
-				}.bind(this)
-			);
-
-			this.refreshDoButtons();
 
 			this.mainProjectionMatrix = makeOrthographicMatrix(
 				new Float32Array(16),
@@ -618,11 +509,6 @@ var Paint = (function () {
 				}.bind(this)
 			);
 
-			canvas.addEventListener('touchstart', this.onTouchStart.bind(this));
-			canvas.addEventListener('touchmove', this.onTouchMove.bind(this));
-			canvas.addEventListener('touchend', this.onTouchEnd.bind(this));
-			canvas.addEventListener('touchcancel', this.onTouchCancel.bind(this));
-
 			//these are used while we're resizing
 			this.resizingSide = ResizingSide.NONE; //which side we're currently resizing
 
@@ -638,12 +524,53 @@ var Paint = (function () {
 
 			port.on('ready', () => {
 				port.on('message', (msg) => {
-					const [x, y] = msg.args;
-					this.interactionState = InteractionMode.PAINTING;
-					this.onBrushMove(x, y);
-					this.colorPicker.onMouseDown(this.brushX, this.brushY);
+					switch (msg.address) {
+						case '/move': {
+							const [x, y] = msg.args;
+							this.interactionState = InteractionMode.PAINTING;
+							this.onBrushMove(x, y);
+							this.colorPicker.onMouseDown(this.brushX, this.brushY);
+							this.saveSnapshot();
+							break;
+						}
+
+						case '/resize': {
+							this.brushScale = msg.args[0];
+							break;
+						}
+
+						case '/bristleCount': {
+							const t = Math.pow(msg.args[0], 2.0);
+							var bristleCount = Math.floor(MIN_BRISTLE_COUNT + t * (MAX_BRISTLE_COUNT - MIN_BRISTLE_COUNT));
+							this.brush.setBristleCount(bristleCount);
+							break;
+						}
+
+						case '/fluidity': {
+							this.simulator.fluidity = msg.args[0];
+							break;
+						}
+
+						case '/hue':
+						case '/saturation':
+						case '/brightness':
+						case '/alpha': {
+							const channel = msg.address.replace('/', '');
+							this.colorPicker.updateColor(msg.args[0], channel);
+							break;
+						}
+
+						case '/clear': {
+							this.clear();
+							break;
+						}
+
+						default: {
+							console.log(`Unknown address: `, msg.address);
+						}
+					}
+
 					this.needsRedraw = true;
-					console.log(this.brushX, this.brushY);
 				});
 			});
 
@@ -668,44 +595,44 @@ var Paint = (function () {
 	Paint.prototype.drawShadow = function (alpha, rectangle) {
 		var wgl = this.wgl;
 
-		var shadowDrawState = wgl
-			.createDrawState()
-			.uniform2f('u_bottomLeft', rectangle.left, rectangle.bottom)
-			.uniform2f('u_topRight', rectangle.getRight(), rectangle.getTop())
-			.uniform1f('u_sigma', BOX_SHADOW_SIGMA)
-			.uniform1f('u_alpha', alpha)
-			.enable(wgl.BLEND)
-			.blendFunc(wgl.ONE, wgl.ONE_MINUS_SRC_ALPHA)
-			.useProgram(this.shadowProgram)
-			.vertexAttribPointer(this.quadVertexBuffer, 0, 2, wgl.FLOAT, wgl.FALSE, 0, 0);
+		// var shadowDrawState = wgl
+		// 	.createDrawState()
+		// 	.uniform2f('u_bottomLeft', rectangle.left, rectangle.bottom)
+		// 	.uniform2f('u_topRight', rectangle.getRight(), rectangle.getTop())
+		// 	.uniform1f('u_sigma', BOX_SHADOW_SIGMA)
+		// 	.uniform1f('u_alpha', alpha)
+		// 	.enable(wgl.BLEND)
+		// 	.blendFunc(wgl.ONE, wgl.ONE_MINUS_SRC_ALPHA)
+		// 	.useProgram(this.shadowProgram)
+		// 	.vertexAttribPointer(this.quadVertexBuffer, 0, 2, wgl.FLOAT, wgl.FALSE, 0, 0);
 
-		var rectangles = [
-			new Rectangle(
-				rectangle.left - BOX_SHADOW_WIDTH,
-				rectangle.bottom - BOX_SHADOW_WIDTH,
-				rectangle.width + 2 * BOX_SHADOW_WIDTH,
-				BOX_SHADOW_WIDTH
-			), //bottom
-			new Rectangle(
-				rectangle.left - BOX_SHADOW_WIDTH,
-				rectangle.getTop(),
-				rectangle.width + 2 * BOX_SHADOW_WIDTH,
-				BOX_SHADOW_WIDTH
-			), //top
-			new Rectangle(rectangle.left - BOX_SHADOW_WIDTH, rectangle.bottom, BOX_SHADOW_WIDTH, rectangle.height), //left
-			new Rectangle(rectangle.getRight(), rectangle.bottom, BOX_SHADOW_WIDTH, rectangle.height), // right
-		];
+		// var rectangles = [
+		// 	new Rectangle(
+		// 		rectangle.left - BOX_SHADOW_WIDTH,
+		// 		rectangle.bottom - BOX_SHADOW_WIDTH,
+		// 		rectangle.width + 2 * BOX_SHADOW_WIDTH,
+		// 		BOX_SHADOW_WIDTH
+		// 	), //bottom
+		// 	new Rectangle(
+		// 		rectangle.left - BOX_SHADOW_WIDTH,
+		// 		rectangle.getTop(),
+		// 		rectangle.width + 2 * BOX_SHADOW_WIDTH,
+		// 		BOX_SHADOW_WIDTH
+		// 	), //top
+		// 	new Rectangle(rectangle.left - BOX_SHADOW_WIDTH, rectangle.bottom, BOX_SHADOW_WIDTH, rectangle.height), //left
+		// 	new Rectangle(rectangle.getRight(), rectangle.bottom, BOX_SHADOW_WIDTH, rectangle.height), // right
+		// ];
 
-		var screenRectangle = new Rectangle(0, 0, this.canvas.width, this.canvas.height);
-		for (var i = 0; i < rectangles.length; ++i) {
-			var rect = rectangles[i];
-			rect.intersectRectangle(screenRectangle);
+		// var screenRectangle = new Rectangle(0, 0, this.canvas.width, this.canvas.height);
+		// for (var i = 0; i < rectangles.length; ++i) {
+		// 	var rect = rectangles[i];
+		// 	rect.intersectRectangle(screenRectangle);
 
-			if (rect.getArea() > 0) {
-				shadowDrawState.viewport(rect.left, rect.bottom, rect.width, rect.height);
-				wgl.drawArrays(shadowDrawState, wgl.TRIANGLE_STRIP, 0, 4);
-			}
-		}
+		// 	if (rect.getArea() > 0) {
+		// 		shadowDrawState.viewport(rect.left, rect.bottom, rect.width, rect.height);
+		// 		wgl.drawArrays(shadowDrawState, wgl.TRIANGLE_STRIP, 0, 4);
+		// 	}
+		// }
 	};
 
 	function cursorForResizingSide(side) {
@@ -858,12 +785,7 @@ var Paint = (function () {
 		this.drawShadow(PAINTING_SHADOW_ALPHA, clippedPaintingRectangle); //draw painting shadow
 
 		//draw brush to screen
-		if (
-			this.interactionState === InteractionMode.PAINTING ||
-			(!this.colorPicker.isInUse() &&
-				this.interactionState === InteractionMode.NONE &&
-				this.desiredInteractionMode(this.mouseX, this.mouseY) === InteractionMode.PAINTING)
-		) {
+		if (this.interactionState === InteractionMode.PAINTING) {
 			//we draw the brush if we're painting or you would start painting on click
 			var brushDrawState = wgl
 				.createDrawState()
@@ -900,18 +822,7 @@ var Paint = (function () {
 		} else if (this.colorPicker.overControl(this.mouseX, this.mouseY)) {
 			desiredCursor = 'pointer';
 		} else if (this.interactionState === InteractionMode.NONE) {
-			//if there is no current interaction, we display a cursor based on what interaction would occur on click
-			var desiredMode = this.desiredInteractionMode(this.mouseX, this.mouseY);
-
-			if (desiredMode === InteractionMode.PAINTING) {
-				desiredCursor = 'none';
-			} else if (desiredMode === InteractionMode.RESIZING) {
-				desiredCursor = cursorForResizingSide(this.getResizingSide(this.mouseX, this.mouseY));
-			} else if (desiredMode === InteractionMode.PANNING) {
-				desiredCursor = 'pointer';
-			} else {
-				desiredCursor = 'default';
-			}
+			desiredCursor = 'none';
 		} else {
 			//if there is an interaction going on, display appropriate cursor
 			if (this.interactionState === InteractionMode.PAINTING) {
@@ -979,22 +890,22 @@ var Paint = (function () {
 
 		//draw panel to screen
 
-		var panelDrawState = wgl
-			.createDrawState()
-			.viewport(0, panelBottom, PANEL_WIDTH, PANEL_HEIGHT)
-			.uniformTexture('u_canvasTexture', 0, wgl.TEXTURE_2D, this.blurredCanvasTexture)
-			.uniform2f('u_canvasResolution', this.canvas.width, this.canvas.height)
-			.uniform2f('u_panelResolution', PANEL_WIDTH, PANEL_HEIGHT)
-			.useProgram(this.panelProgram)
-			.vertexAttribPointer(this.quadVertexBuffer, 0, 2, wgl.FLOAT, wgl.FALSE, 0, 0);
+		// var panelDrawState = wgl
+		// 	.createDrawState()
+		// 	.viewport(0, panelBottom, PANEL_WIDTH, PANEL_HEIGHT)
+		// 	.uniformTexture('u_canvasTexture', 0, wgl.TEXTURE_2D, this.blurredCanvasTexture)
+		// 	.uniform2f('u_canvasResolution', this.canvas.width, this.canvas.height)
+		// 	.uniform2f('u_panelResolution', PANEL_WIDTH, PANEL_HEIGHT)
+		// 	.useProgram(this.panelProgram)
+		// 	.vertexAttribPointer(this.quadVertexBuffer, 0, 2, wgl.FLOAT, wgl.FALSE, 0, 0);
 
-		wgl.drawArrays(panelDrawState, wgl.TRIANGLE_STRIP, 0, 4);
+		// wgl.drawArrays(panelDrawState, wgl.TRIANGLE_STRIP, 0, 4);
 
-		this.drawShadow(PANEL_SHADOW_ALPHA, new Rectangle(0, panelBottom, PANEL_WIDTH, PANEL_HEIGHT)); //shadow for panel
+		// this.drawShadow(PANEL_SHADOW_ALPHA, new Rectangle(0, panelBottom, PANEL_WIDTH, PANEL_HEIGHT)); //shadow for panel
 
-		this.needsRedraw = false;
+		// this.needsRedraw = false;
 
-		this.colorPicker.draw(this.colorModel === ColorModel.RGB);
+		// this.colorPicker.draw(this.colorModel === ColorModel.RGB);
 
 		//this.brushViewer.draw(this.brushX, this.brushY, this.brush);
 	};
@@ -1397,7 +1308,6 @@ var Paint = (function () {
 
 	//what interaction mode would be triggered if we clicked with given mouse position
 	Paint.prototype.desiredInteractionMode = function (mouseX, mouseY) {
-		return InteractionMode.PAINTING;
 		var mouseOverPanel = mouseX < PANEL_WIDTH && mouseY > this.canvas.height - PANEL_HEIGHT;
 
 		if (mouseOverPanel) {
