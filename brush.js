@@ -1,7 +1,8 @@
 var Brush = (function () {
     'use strict';
 
-    var N_PREVIOUS_SPEEDS = 15; //how many previous speeds we store
+    const N_PREVIOUS_SPEEDS = 15; //how many previous speeds we store
+ 
 
     var SPLATS_PER_SEGMENT = 8;
 
